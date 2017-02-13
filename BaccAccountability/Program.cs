@@ -18,11 +18,14 @@ namespace BaccAccountability
             SqlConnection conn = new SqlConnection("server=vulcan;Trusted_Connection=true;database=StateSubmission");
             SqlCommand comm;
             SqlDataReader reader;
-            StateReportingYear year = new StateReportingTermShort("115").getStateReportingYear();
+            StateReportingYear year = new StateReportingTermShort("112").getStateReportingYear();
             List<String> inStateStudents = new List<string>();
             List<String> programs = new List<string>();
             Dictionary<String, int> inStateProgramHours = new Dictionary<string, int>();
             Dictionary<String, int> outOfStateProgramHours = new Dictionary<string, int>();
+            Dictionary<String, Tuple<List<String>, List<String>>> programStudents = new Dictionary<string, Tuple<List<string>, List<string>>>();
+
+            int bacCount = 0;
 
             try
             {
@@ -54,6 +57,8 @@ namespace BaccAccountability
 
             while (reader.Read())
             {
+                bacCount++;
+
                 String studentID = reader["DE1021"].ToString();
 
                 int residenciesCount = int.Parse(reader["Residencies"].ToString());
@@ -65,7 +70,7 @@ namespace BaccAccountability
             }
 
             reader.Close();
-
+            
             for (StateReportingTermShort i = year.getNthTerm(1); i < year.getNthTerm(3); i++)
             {
                     comm = new SqlCommand(@"IF OBJECT_ID('tempdb..#upperLevelEnrollments') IS NOT NULL
@@ -138,6 +143,11 @@ namespace BaccAccountability
                     String studentID = reader["Student"].ToString();
                     String program = reader["Program"].ToString();
 
+                    if (!programStudents.ContainsKey(program))
+                    {
+                        programStudents.Add(program, new Tuple<List<string>, List<string>>(new List<string>(), new List<string>()));
+                    }
+
                     int hours = int.Parse(reader["Hours"].ToString());
 
                     if (!inStateProgramHours.ContainsKey(program))
@@ -150,19 +160,34 @@ namespace BaccAccountability
                     if (inStateStudents.Contains(studentID))
                     {
                         inStateProgramHours[program] += hours;
+
+                        if (!programStudents[program].Item1.Contains(studentID))
+                        {
+                            programStudents[program].Item1.Add(studentID);
+                        }
                     }
                     else
                     {
                         outOfStateProgramHours[program] += hours;
+
+                        if (!programStudents[program].Item2.Contains(studentID))
+                        {
+                            programStudents[program].Item2.Add(studentID);
+                        }
                     }
                 }
 
                 reader.Close();
             }
 
+            output.WriteLine(@"""Total Upper Level Enrolled Students:""," + bacCount);
+
+            output.WriteLine("Program,In-State Program Hours,In-State FTE,In-State Headcount,Out-of-State Program Hours,Out-of-State FTE,Out-of-State Headcount");
+
             foreach (String program in programs)
             {
-                output.WriteLine(String.Join(",", program, inStateProgramHours[program], outOfStateProgramHours[program]));
+                output.WriteLine(String.Join(",", program, inStateProgramHours[program], inStateProgramHours[program] / 30.0, programStudents[program].Item1.Count,
+                    outOfStateProgramHours[program], outOfStateProgramHours[program] / 30.0, programStudents[program].Item2.Count));
             }
 
             output.Close();
