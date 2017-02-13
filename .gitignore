@@ -260,5 +260,3 @@ paket-files/
 __pycache__/
 *.pyc
 /UpperLevelEnrollmentHoursByProgram.csv
-/edit.csv
-/edit.xlsx
