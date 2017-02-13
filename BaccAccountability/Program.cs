@@ -82,6 +82,9 @@ namespace BaccAccountability
 	                                            SUBSTRING(r6.DE3008, 4, 1) IN ('3','4')
 	                                            AND r6.DE1028 = '" + i + @"'
 	                                            AND r6.SubmissionType = 'E'
+                                                AND r6.DE3018 = 'Z'
+                                                AND r6.DE3006 NOT IN ('C','D','G')
+                                                AND r6.DE3010 = 'N'
                                             GROUP BY
 	                                            r6.DE1021
 
